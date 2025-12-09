@@ -2,62 +2,53 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Laporan;
+use App\Models\Transaksi;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class LaporanController extends Controller
 {
-    public function index()
+    /**
+     * Menampilkan formulir laporan dan hasil laporan berdasarkan filter.
+     */
+    public function index(Request $request)
     {
-        $laporans = Laporan::orderBy('report_date', 'desc')->get();
-        return view('laporans.index', compact('laporans'));
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $reports = collect();
+        $totalRevenue = 0;
+        $totalBookings = 0;
+
+        if ($startDate && $endDate) {
+            
+            // 1. Validasi Tanggal
+            $request->validate([
+                'start_date' => 'required|date',
+                'end_date' => 'required|date|after_or_equal:start_date',
+            ]);
+
+            // 2. Ambil Transaksi yang sudah PAID (dan yang dibooking)
+            $reports = Transaksi::with(['booking.user', 'booking.room'])
+                ->where('status', 'paid')
+                ->whereBetween('transaction_date', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                ->orderBy('transaction_date', 'asc')
+                ->get();
+            
+            // 3. Hitung Ringkasan
+            $totalRevenue = $reports->sum('amount');
+            $totalBookings = $reports->count();
+        }
+
+        return view('laporan.index', compact('reports', 'startDate', 'endDate', 'totalRevenue', 'totalBookings'));
     }
 
-    public function create()
+    /**
+     * Membuat Laporan PDF (Placeholder - Fitur Ekstra)
+     */
+    public function generatePdf(Request $request)
     {
-        return view('laporans.create');
-    }
-
-    public function store(Request $request)
-    {
-        $request->validate([
-            'report_date' => 'required|date',
-            'total_bookings' => 'required|integer',
-            'total_success_transactions' => 'required|integer',
-            'total_income' => 'required|numeric',
-        ]);
-
-        Laporan::create($request->all());
-
-        return redirect()->route('laporans.index')
-            ->with('success', 'Laporan berhasil dibuat');
-    }
-
-    public function edit(Laporan $laporan)
-    {
-        return view('laporans.edit', compact('laporan'));
-    }
-
-    public function update(Request $request, Laporan $laporan)
-    {
-        $request->validate([
-            'report_date' => 'required|date',
-            'total_bookings' => 'required|integer',
-            'total_success_transactions' => 'required|integer',
-            'total_income' => 'required|numeric',
-        ]);
-
-        $laporan->update($request->all());
-
-        return redirect()->route('laporans.index')
-            ->with('success', 'Laporan berhasil diperbarui');
-    }
-
-    public function destroy(Laporan $laporan)
-    {
-        $laporan->delete();
-
-        return redirect()->route('laporans.index')
-            ->with('success', 'Laporan berhasil dihapus');
+        // Fitur ini memerlukan library seperti barryvdh/laravel-dompdf
+        // Untuk sekarang, kita kembalikan redirect saja.
+        return redirect()->route('laporan.index')->with('info', 'Fitur generate PDF belum terinstal.');
     }
 }

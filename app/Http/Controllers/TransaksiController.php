@@ -2,63 +2,36 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Transaction;
-use App\Models\Booking;
+use App\Models\Transaksi;
 use Illuminate\Http\Request;
 
-class TransactionController extends Controller
+class TransaksiController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     */
     public function index()
     {
-        $transactions = Transaction::with('booking')->get();
-        return view('transactions.index', compact('transactions'));
+        // Ambil semua transaksi dengan relasi booking, user, dan room
+        // Asumsi relasi booking sudah ada di Transaksi model
+        $transactions = Transaksi::with('booking.user', 'booking.room')
+                            ->orderBy('transaction_date', 'desc')
+                            ->paginate(10);
+                            
+        return view('transaksi.index', compact('transactions'));
     }
 
-    public function create()
+    /**
+     * Remove the specified resource from storage.
+     * Hanya boleh dilakukan oleh admin.
+     */
+    public function destroy(Transaksi $transaksi)
     {
-        $bookings = Booking::all();
-        return view('transactions.create', compact('bookings'));
+        $transaksi->delete();
+
+        return redirect()->route('transaksi.index')
+                         ->with('success', 'Transaksi berhasil dihapus.');
     }
-
-    public function store(Request $request)
-    {
-        $request->validate([
-            'booking_id' => 'required',
-            'type' => 'required',
-            'amount' => 'required|numeric'
-        ]);
-
-        Transaction::create($request->all());
-
-        return redirect()->route('transactions.index')
-                         ->with('success', 'Transaksi berhasil dibuat');
-    }
-
-    public function edit(Transaction $transaction)
-    {
-        $bookings = Booking::all();
-        return view('transactions.edit', compact('transaction', 'bookings'));
-    }
-
-    public function update(Request $request, Transaction $transaction)
-    {
-        $request->validate([
-            'booking_id' => 'required',
-            'type' => 'required',
-            'amount' => 'required|numeric',
-            'status' => 'required'
-        ]);
-
-        $transaction->update($request->all());
-
-        return redirect()->route('transactions.index')
-                         ->with('success', 'Transaksi berhasil diperbarui');
-    }
-
-    public function destroy(Transaction $transaction)
-    {
-        $transaction->delete();
-        return redirect()->route('transactions.index')
-                         ->with('success', 'Transaksi berhasil dihapus');
-    }
+    
+    // Metode create, store, edit, update biasanya dihandle oleh sistem payment gateway/booking process.
 }

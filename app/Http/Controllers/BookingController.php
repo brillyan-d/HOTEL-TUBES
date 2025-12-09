@@ -3,76 +3,60 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
-use App\Models\User;
-use App\Models\Room;
+use App\Models\Room; // Digunakan untuk relasi
+use App\Models\User; // Digunakan untuk relasi
 use Illuminate\Http\Request;
 
 class BookingController extends Controller
 {
-    // Tampilkan semua booking
+    /**
+     * Display a listing of the resource.
+     */
     public function index()
     {
-        $bookings = Booking::with(['user', 'room'])->orderBy('id', 'desc')->get();
-        return view('bookings.index', compact('bookings'));
+        // Ambil semua booking dengan detail user dan room, urutkan berdasarkan tanggal check-in
+        $bookings = Booking::with(['user', 'room'])
+                            ->orderBy('check_in_date', 'desc')
+                            ->paginate(10); 
+                            
+        return view('admin.booking.index', compact('bookings'));
     }
 
-    // Form tambah booking
-    public function create()
+    /**
+     * Show the form for editing the specified resource (Hanya untuk ubah status di Admin).
+     */
+    public function edit(Booking $booking)
     {
-        $users = User::all();
-        $rooms = Room::where('status', 'available')->get();
-
-        return view('bookings.create', compact('users', 'rooms'));
+        // Dengan Route Model Binding, $booking sudah terisi data
+        return view('admin.booking.edit', compact('booking'));
     }
 
-    // Simpan booking
-    public function store(Request $request)
+    /**
+     * Update the specified resource in storage (Update Status Booking).
+     */
+    public function update(Request $request, Booking $booking)
     {
+        // Validasi hanya status yang boleh diubah
         $request->validate([
-            'user_id'   => 'required',
-            'room_id'   => 'required',
-            'check_in'  => 'required|date',
-            'check_out' => 'required|date|after:check_in',
-            'guest_count' => 'required|numeric|min:1'
+            'status' => 'required|in:pending,confirmed,checked_in,canceled',
         ]);
 
-        Booking::create($request->all());
-
-        return redirect()->route('bookings.index')->with('success', 'Booking berhasil dibuat.');
-    }
-
-    // Form edit booking
-    public function edit($id)
-    {
-        $booking = Booking::findOrFail($id);
-        $users = User::all();
-        $rooms = Room::all();
-
-        return view('bookings.edit', compact('booking', 'users', 'rooms'));
-    }
-
-    // Update data booking
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'user_id'   => 'required',
-            'room_id'   => 'required',
-            'check_in'  => 'required',
-            'check_out' => 'required|date|after:check_in',
-            'guest_count' => 'required'
+        $booking->update([
+            'status' => $request->status
         ]);
 
-        $booking = Booking::findOrFail($id);
-        $booking->update($request->all());
-
-        return redirect()->route('bookings.index')->with('success', 'Booking berhasil diperbarui.');
+        return redirect()->route('booking.index')
+                         ->with('success', 'Status booking berhasil diperbarui!');
     }
 
-    // Hapus booking
-    public function destroy($id)
+    // Metode create, store, show, dan destroy biasanya tidak diperlukan atau dihandle di sisi User/Frontend
+    public function create() { /* No Admin Create Form needed */ }
+    public function store(Request $request) { /* Bookings are created by users */ }
+    public function show(Booking $booking) { /* Basic view */ }
+    public function destroy(Booking $booking) 
     {
-        Booking::destroy($id);
-
-        return redirect()->route('bookings.index')->with('success', 'Booking berhasil dihapus.');
+        $booking->delete();
+        return redirect()->route('booking.index')
+                         ->with('success', 'Booking berhasil dihapus.');
     }
 }

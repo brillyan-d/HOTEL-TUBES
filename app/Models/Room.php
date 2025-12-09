@@ -2,26 +2,20 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Room extends Model
 {
     use HasFactory;
-
+    
+    // Pastikan semua field dari form sudah ada di sini, termasuk 'gambar'
     protected $fillable = [
-        'room_number',
-        'type',
-        'capacity',
-        'price',
-        'breakfast_included',
-        'status',
-        'description',
+        'nama_kamar', 
+        'tipe_kamar', 
+        'harga', 
+        'deskripsi', 
+        'stok', 
+        'gambar'
     ];
-
-    // Relasi: Room punya banyak booking
-    public function bookings()
-    {
-        return $this->hasMany(Booking::class);
-    }
 }

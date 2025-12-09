@@ -17,6 +17,72 @@ class RoomController extends Controller
         return view('kamar.index', compact('rooms'));
     }
 
+    // Tambahkan publicIndex Method ini ke dalam class RoomController
+
+    /**
+     * Display the public listing of available rooms with filters.
+     */
+    public function publicIndex(Request $request)
+    {
+        $query = Room::where('stok', '>', 0); // Hanya tampilkan kamar yang punya stok
+
+        // Filter berdasarkan Tipe Kamar
+        if ($request->filled('type')) {
+            $query->where('tipe_kamar', $request->input('type'));
+        }
+        
+        // Filter berdasarkan Guests (Simulasi sederhana)
+        if ($request->filled('guests')) {
+             // Asumsi: Single = 1-2, Double = 2-3, Suite = 3+
+            // Implementasi di sini mungkin perlu penyesuaian dengan logika bisnis kamu
+        }
+
+
+        // Filter ketersediaan berdasarkan tanggal (Logika sederhana: Cek ketersediaan berdasarkan booking)
+        if ($request->filled(['check_in', 'check_out']) && $request->check_in < $request->check_out) {
+            $checkIn = $request->input('check_in');
+            $checkOut = $request->input('check_out');
+
+            // Logic: Ambil rooms.id yang TIDAK ada di daftar Booking yang bentrok dengan tanggal yang diminta.
+            $bookedRoomIds = Booking::where(function ($q) use ($checkIn, $checkOut) {
+                // Bentrok jika: 
+                // 1. Check-in/Check-out ada di antara tanggal request
+                $q->whereBetween('check_in_date', [$checkIn, $checkOut])
+                  ->orWhereBetween('check_out_date', [$checkIn, $checkOut])
+                  // 2. Tanggal request ada di antara Check-in/Check-out yang sudah ada
+                  ->orWhere(function ($q2) use ($checkIn, $checkOut) {
+                      $q2->where('check_in_date', '<', $checkIn)
+                         ->where('check_out_date', '>', $checkOut);
+                  });
+            })
+            // Hanya booking yang Confirmed atau Checked_in
+            ->whereIn('status', ['confirmed', 'checked_in'])
+            ->pluck('room_id')
+            ->unique();
+
+            // Kecualikan kamar yang sudah dibooking pada periode tersebut
+            $query->whereNotIn('id', $bookedRoomIds);
+        }
+        
+        $rooms = $query->latest()->paginate(9);
+
+        return view('rooms.index', compact('rooms'));
+    }
+    
+    /**
+     * Metode placeholder untuk proses booking per kamar.
+     */
+    public function book($id)
+    {
+        $room = Room::findOrFail($id);
+        // Di sini kamu akan mengarahkan ke halaman booking form
+        // return view('rooms.book', compact('room'));
+        // Untuk saat ini, kita redirect sementara
+        return redirect()->back()->with('error', 'Fitur Booking Form belum diimplementasikan!');
+    }
+
+// ... sisa class RoomController
+
     /**
      * Show the form for creating a new resource.
      */

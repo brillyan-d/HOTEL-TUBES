@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
@@ -38,6 +39,8 @@ Route::resource('kamar', \App\Http\Controllers\KamarController::class);
 
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('bookings', BookingController::class);
+Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
+    Route::get('/laporan/pdf', [LaporanController::class, 'generatePdf'])->name('laporan.generate.pdf'); // Untuk fitur cetak/download
 });
 
 Route::middleware(['admin'])->group(function () {

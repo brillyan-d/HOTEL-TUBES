@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
-class KamarController extends Controller
+class RoomController extends Controller
 {
     // =========================================================
     // Admin CRUD Methods
